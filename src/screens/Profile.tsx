@@ -15,6 +15,7 @@ import {
 import * as ImagePicker from 'expo-image-picker'
 import { useState } from 'react'
 import { TouchableOpacity } from 'react-native'
+// import defaulUserPhotoImg from '@assets/userPhotoDefault.png'
 
 const PHOTO_SIZE = 33
 
