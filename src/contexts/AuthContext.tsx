@@ -16,6 +16,7 @@ type AuthContextData = {
   user: UserDTO
   isLoadingUserStorageData: boolean
   signOut: () => Promise<void>
+  updateUserProfile: (userUpdated: UserDTO) => Promise<void>
   singIn: (email: string, password: string) => Promise<void>
 }
 
@@ -30,7 +31,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
       setIsLoadingUserStorageData(true)
 
       const userLogged = await storageUserGet()
-      const token = await storageAuthTokenGet()
+      const { token } = await storageAuthTokenGet()
 
       if (userLogged && token) {
         userAndTokenUpdate(userLogged, token)
@@ -40,14 +41,23 @@ export function AuthProvider({ children }: PropsWithChildren) {
     }
   }
 
-  async function storageUserAndTokenSave(userData: UserDTO, token: string) {
+  async function storageUserAndTokenSave(
+    userData: UserDTO,
+    token: string,
+    refresh_token: string,
+  ) {
     try {
       setIsLoadingUserStorageData(true)
       await storageUserSave(userData)
-      await storageAuthTokenSave(token)
+      await storageAuthTokenSave({ token, refresh_token })
     } finally {
       setIsLoadingUserStorageData(false)
     }
+  }
+
+  async function updateUserProfile(userUpdated: UserDTO) {
+    setUser(userUpdated)
+    await storageUserSave(userUpdated)
   }
 
   async function userAndTokenUpdate(userData: UserDTO, token: string) {
@@ -58,8 +68,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
   async function singIn(email: string, password: string) {
     try {
       const { data } = await api.post('/sessions', { email, password })
-      if (data.user && data.token) {
-        await storageUserAndTokenSave(data.user, data.token)
+      if (data.user && data.token && data.refresh_token) {
+        await storageUserAndTokenSave(data.user, data.token, data.refresh_token)
         userAndTokenUpdate(data.user, data.token)
       }
     } finally {
@@ -82,9 +92,23 @@ export function AuthProvider({ children }: PropsWithChildren) {
     loadUserData()
   }, [])
 
+  useEffect(() => {
+    const subscribe = api.registerInterceptTokenManager(signOut)
+
+    return () => {
+      subscribe()
+    }
+  }, [])
+
   return (
     <AuthContext.Provider
-      value={{ isLoadingUserStorageData, user, singIn, signOut }}
+      value={{
+        isLoadingUserStorageData,
+        updateUserProfile,
+        user,
+        singIn,
+        signOut,
+      }}
     >
       {children}
     </AuthContext.Provider>

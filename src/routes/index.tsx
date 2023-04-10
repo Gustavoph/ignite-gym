@@ -14,7 +14,7 @@ export function Routes() {
   theme.colors.background = nativeTheme.colors.gray[700]
 
   if (isLoadingUserStorageData) {
-    return <Loading />
+    return <Loading withBackground />
   }
 
   return (
